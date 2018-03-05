@@ -5,7 +5,7 @@ static SemaphoreHandle_t buffer_mutex;
 static TaskHandle_t task_handle;
 
 static uint16_t *bitplane[2][BITPLANE_CNT];
-    
+
 uint32_t getpixel(unsigned char *pix, int x, int y) {
     unsigned char *p=pix+((x+y*64)*3);
     return (p[0]<<16)|(p[1]<<8)|(p[2]);
@@ -70,7 +70,7 @@ void driver_init() {
     buffer_mutex = xSemaphoreCreateMutex();
 }
 
-void driver_cleanup() {
+void driver_shutdown() {
     vTaskDelete(task_handle);
     vSemaphoreDelete(buffer_mutex);
 }
@@ -94,7 +94,6 @@ void driver_update() {
 #else
                     int x=fx;
 #endif
-
                     int v=lbits;
                     //Do not show image while the line bits are changing
                     if (fx<1 || fx>=BRIGHTNESS) v|=BIT_OE;
@@ -102,10 +101,15 @@ void driver_update() {
 
                     BaseType_t err = xSemaphoreTake(buffer_mutex, portMAX_DELAY);
                     assert(err == pdPASS && "xSemaphoreTake() failed.");
-
                     assert(image_buffer && "image buffer is null!");
+
+#if FLIP_IMAGE
+                    int c1=getpixel(image_buffer, x, 32 - y);
+                    int c2=getpixel(image_buffer, x, 16 - y);
+#else
                     int c1=getpixel(image_buffer, x, y);
-                    int c2=getpixel(image_buffer, x, y+16);
+                    int c2=getpixel(image_buffer, x, y + 16);
+#endif
                     xSemaphoreGive(buffer_mutex);
 
                     if (c1 & (mask<<16)) v|=BIT_R1;
@@ -117,9 +121,6 @@ void driver_update() {
 
                     //Save the calculated value to the bitplane memory
                     *p++=v;
-
-                    //debug
-                    printf("%d\n", lbits);
                 }
             }
         }
@@ -133,7 +134,6 @@ void driver_update() {
 }
 
 void driver_run() {
-    //BaseType_t err = xTaskCreate(driver_update, "driver_update", 300, NULL, 4, &task_handle);
-    //assert(err == pdPASS && "xTaskCreate() failed.");
-    driver_update();
+    BaseType_t err = xTaskCreate(driver_update, "driver_update", 500, NULL, 4, &task_handle);
+    assert(err == pdPASS && "xTaskCreate() failed.");
 }

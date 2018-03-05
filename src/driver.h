@@ -117,10 +117,11 @@ Note: Because every subframe contains one bit of grayscale information, they are
 
 #define REFRESH_RATE 100
 #define BUFFER_SIZE 64 * 32 * 3
+#define FLIP_IMAGE 1
 
 void driver_init();
 void driver_run();
-void driver_cleanup();
+void driver_shutdown();
 
 void driver_set_buffer(unsigned char*);
 

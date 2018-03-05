@@ -5,16 +5,16 @@ void app_main() {
 
     unsigned char* buffer = (unsigned char*)malloc(BUFFER_SIZE);
     for(int i = 0; i < BUFFER_SIZE; i+=3) {
-        buffer[i] = 1;
-        buffer[i+1] = 0;
-        buffer[i+2] = 0;
+        buffer[i]   = 0x0;
+        buffer[i+1] = 0xFF;
+        buffer[i+2] = 0x0;
     }
 
     driver_set_buffer(buffer);
     driver_run();
 
     //handle web requests, update buffer
-    //vTaskDelay(5000 / portTICK_PERIOD_MS);
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
 
-    driver_cleanup();
+    driver_shutdown();
 }
