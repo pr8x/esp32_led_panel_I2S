@@ -76,9 +76,12 @@ void driver_shutdown() {
 }
 
 void driver_update() {
-
     int backbuf_id=0; //which buffer is the backbuffer, as in, which one is not active so we can write to it
     for(;;) {
+        BaseType_t err = xSemaphoreTake(buffer_mutex, portMAX_DELAY);
+        assert(err == pdPASS && "xSemaphoreTake() failed.");
+        assert(image_buffer && "image_buffer is NULL");
+
         for (int pl=0; pl<BITPLANE_CNT; pl++) {
             int mask=(1<<(8-BITPLANE_CNT+pl)); //bitmask for pixel data in input for this bitplane
             uint16_t *p=bitplane[backbuf_id][pl]; //bitplane location to write to
@@ -99,9 +102,6 @@ void driver_update() {
                     if (fx<1 || fx>=BRIGHTNESS) v|=BIT_OE;
                     if (fx==62) v|=BIT_LAT; //latch on second-to-last bit... why not last bit? Dunno, probably a timing thing.
 
-                    BaseType_t err = xSemaphoreTake(buffer_mutex, portMAX_DELAY);
-                    assert(err == pdPASS && "xSemaphoreTake() failed.");
-                    assert(image_buffer && "image buffer is null!");
 
 #if FLIP_IMAGE
                     int c1=getpixel(image_buffer, x, 32 - y);
@@ -110,7 +110,6 @@ void driver_update() {
                     int c1=getpixel(image_buffer, x, y);
                     int c2=getpixel(image_buffer, x, y + 16);
 #endif
-                    xSemaphoreGive(buffer_mutex);
 
                     if (c1 & (mask<<16)) v|=BIT_R1;
                     if (c1 & (mask<<8)) v|=BIT_G1;
@@ -124,6 +123,7 @@ void driver_update() {
                 }
             }
         }
+        xSemaphoreGive(buffer_mutex);
 
         //Present image and swap buffers
         i2s_parallel_flip_to_buffer(&I2S1, backbuf_id);
@@ -134,6 +134,7 @@ void driver_update() {
 }
 
 void driver_run() {
-    BaseType_t err = xTaskCreate(driver_update, "driver_update", 500, NULL, 4, &task_handle);
+    BaseType_t err = xTaskCreate(driver_update, 
+        "driver_update", 500, NULL, 4, &task_handle);
     assert(err == pdPASS && "xTaskCreate() failed.");
 }
