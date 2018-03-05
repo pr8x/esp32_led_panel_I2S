@@ -24,9 +24,8 @@
 #include "freertos/semphr.h"
 #include "freertos/queue.h"
 
-#include "esp_heap_caps.h"
-#include "anim.h"
-#include "val2pwm.h"
+#include "heap_caps.h"
+//#include "val2pwm.h"
 #include "i2s_parallel.h"
 
 /*
@@ -95,6 +94,10 @@ Note: Because every subframe contains one bit of grayscale information, they are
 //64*32 RGB leds, 2 pixels per 16-bit value...
 #define BITPLANE_SZ (64*32/2)
 
+//Change to set the global brightness of the display, range 1-63
+//Warning when set too high: Do not look into LEDs with remaining eye.
+#define BRIGHTNESS 16
+
 //Upper half RGB
 #define BIT_R1 (1<<0)   //connected to GPIO2 here
 #define BIT_G1 (1<<1)   //connected to GPIO15 here
@@ -117,6 +120,7 @@ Note: Because every subframe contains one bit of grayscale information, they are
 
 void driver_init();
 void driver_run();
+void driver_cleanup();
 
 void driver_set_buffer(unsigned char*);
 

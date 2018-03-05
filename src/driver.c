@@ -4,21 +4,21 @@ static unsigned char* image_buffer;
 static SemaphoreHandle_t buffer_mutex;
 static TaskHandle_t task_handle;
 
+static uint16_t *bitplane[2][BITPLANE_CNT];
+    
 uint32_t getpixel(unsigned char *pix, int x, int y) {
     unsigned char *p=pix+((x+y*64)*3);
     return (p[0]<<16)|(p[1]<<8)|(p[2]);
 }
 
 void driver_set_buffer(unsigned char* buffer) {
-    assert(xSemaphoreTake(buffer_mutex, portMAX_DELAY));
+    BaseType_t err = xSemaphoreTake(buffer_mutex, portMAX_DELAY);
+    assert(err == pdPASS && "xSemaphoreTake() failed");
     image_buffer = buffer;
     xSemaphoreGive(buffer_mutex);
 }
 
 void driver_init() {
-    int brightness=16; //Change to set the global brightness of the display, range 1-63
-                       //Warning when set too high: Do not look into LEDs with remaining eye.
-
     i2s_parallel_buffer_desc_t bufdesc[2][1<<BITPLANE_CNT];
     i2s_parallel_config_t cfg={
         .gpio_bus={2, 15, 4, 16, 27, 17, -1, -1, 5, 18, 19, 21, 26, 25, -1, -1},
@@ -29,8 +29,6 @@ void driver_init() {
         .bufb=bufdesc[1],
     };
 
-    uint16_t *bitplane[2][BITPLANE_CNT];
-    
     for (int i=0; i<BITPLANE_CNT; i++) {
         for (int j=0; j<2; j++) {
             //http://esp-idf.readthedocs.io/en/latest/api-reference/system/mem_alloc.html
@@ -72,11 +70,6 @@ void driver_init() {
     buffer_mutex = xSemaphoreCreateMutex();
 }
 
-void driver_run() {
-  assert(xTaskCreate(driver_update,
-      "driver_update", 200, NULL, 4, &task_handle));
-}
-
 void driver_cleanup() {
     vTaskDelete(task_handle);
     vSemaphoreDelete(buffer_mutex);
@@ -104,10 +97,12 @@ void driver_update() {
 
                     int v=lbits;
                     //Do not show image while the line bits are changing
-                    if (fx<1 || fx>=brightness) v|=BIT_OE;
+                    if (fx<1 || fx>=BRIGHTNESS) v|=BIT_OE;
                     if (fx==62) v|=BIT_LAT; //latch on second-to-last bit... why not last bit? Dunno, probably a timing thing.
 
-                    assert(xSemaphoreTake(buffer_mutex, portMAX_DELAY));
+                    BaseType_t err = xSemaphoreTake(buffer_mutex, portMAX_DELAY);
+                    assert(err == pdPASS && "xSemaphoreTake() failed.");
+
                     assert(image_buffer && "image buffer is null!");
                     int c1=getpixel(image_buffer, x, y);
                     int c2=getpixel(image_buffer, x, y+16);
@@ -122,6 +117,9 @@ void driver_update() {
 
                     //Save the calculated value to the bitplane memory
                     *p++=v;
+
+                    //debug
+                    printf("%d\n", lbits);
                 }
             }
         }
@@ -132,4 +130,10 @@ void driver_update() {
 
         vTaskDelay(REFRESH_RATE / portTICK_PERIOD_MS);
     }
+}
+
+void driver_run() {
+    //BaseType_t err = xTaskCreate(driver_update, "driver_update", 300, NULL, 4, &task_handle);
+    //assert(err == pdPASS && "xTaskCreate() failed.");
+    driver_update();
 }
