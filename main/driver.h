@@ -24,7 +24,7 @@
 #include "freertos/semphr.h"
 #include "freertos/queue.h"
 
-//#include "val2pwm.h"
+#include "val2pwm.h"
 #include "i2s_parallel.h"
 #include "common.h"
 
@@ -61,15 +61,14 @@
 #define BIT_LAT (1<<12) //connected to GPIO26 here
 #define BIT_OE (1<<13)  //connected to GPIO25 here
 
-#define REFRESH_RATE 100
+#define REFRESH_RATE 16 
 #define BUFFER_SIZE 64 * 32 * 3
-#define FLIP_IMAGE 1
 
 void driver_init();
 void driver_run();
 void driver_shutdown();
 
-void driver_set_buffer(unsigned char*);
+void driver_present(unsigned char*);
 
 //Get a pixel from the image at pix, assuming the image is a 64x32 8R8G8B image
 //Returns it as an uint32 with the lower 24 bits containing the RGB values.

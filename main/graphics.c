@@ -8,7 +8,8 @@ static unsigned char* buffer;
 static unsigned char* fb;
 static unsigned char* bb;
 
-static TaskHandle_t module_task_handle;
+static TaskHandle_t task_handle;
+
 static const char* LOG_TAG = "Graphics";
 
 void graphics_init() {
@@ -23,13 +24,14 @@ void graphics_init() {
     fb = buffer + BUFFER_SIZE;
     ESP_LOGI(LOG_TAG, "front/back buffer allocated: fb: %d bb: %d", (int)fb, (int)bb);
 
-    driver_set_buffer(fb);
     driver_run();
+    driver_set_buffer(fb);
 }
 
 void graphics_shutdown() {
     driver_shutdown();
     free(buffer);
+    vTaskDelete(task_handle);
     ESP_LOGI(LOG_TAG, "shutdown");
 } 
 
@@ -40,14 +42,16 @@ void graphics_swap_buffer() {
 } 
 
 void module_task(void* fn) {
-    ESP_LOGI(LOG_TAG, "module started");
+    ESP_LOGI(LOG_TAG, "task running on core %d", xPortGetCoreID());
 
     for(;;) {
+        TickType_t t0 = xTaskGetTickCount();
+
         for (int y = 0; y < 32; ++y) {
             for (int x = 0; x < 64; ++x) {
                 vec2 uv;
-                uv.x =  x / 64.0f;
-                uv.y =  y / 32.0f;
+                uv.x = 1.0f - (x / 64.0f);
+                uv.y = y / 32.0f;
 
                 vec3 out;
                 (*((module_func_t)fn))(&uv, &out);
@@ -58,13 +62,16 @@ void module_task(void* fn) {
                 p[2] = (int)(out.z * 255);
             }
         }
+        //vTaskDelay(1 / portTICK_PERIOD_MS); //feed watchdog
+
         driver_set_buffer(fb);
         graphics_swap_buffer();
+
+        ESP_LOGI(LOG_TAG, "delta: %d", xTaskGetTickCount() - t0);
     }
 }
 
 void graphics_module_start(module_func_t fn) {
-    assert(xTaskCreate(module_task, 
-        "module_task", 1000, (void*) fn, 4,
-        &module_task_handle) && "xTaskCreate() failed.");
+    assert(xTaskCreatePinnedToCore(module_task, 
+        "module_task", 10000, (void*) fn, 2, &task_handle, 1) && "xTaskCreate() failed.");
 }

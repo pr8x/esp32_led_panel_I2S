@@ -1,7 +1,6 @@
 #include "driver.h"
 
-static unsigned char* image_buffer;
-static SemaphoreHandle_t buffer_mutex;
+//static unsigned char* buffer;
 static TaskHandle_t task_handle;
 
 static const char* LOG_TAG = "Driver";
@@ -13,10 +12,9 @@ uint32_t getpixel(unsigned char *pix, int x, int y) {
     return (p[0]<<16)|(p[1]<<8)|(p[2]);
 }
 
-void driver_set_buffer(unsigned char* buffer) {
-    //assert(xSemaphoreTake(buffer_mutex, portMAX_DELAY) && "xSemaphoreTake() failed");
-    image_buffer = buffer;
-    //assert(xSemaphoreGive(buffer_mutex) && "xSemaphoreGive() failed");
+void driver_set_buffer(unsigned char* _buffer) {
+    //buffer = _buffer;
+    xTaskNotify( task_handle, (uint32_t) _buffer, eSetValueWithOverwrite );
 }
 
 void driver_init() {
@@ -64,22 +62,23 @@ void driver_init() {
     //Setup I2S
     i2s_parallel_setup(&I2S1, &cfg);
     ESP_LOGI(LOG_TAG, "I2S setup done");
-
-    buffer_mutex = xSemaphoreCreateMutex();
-    assert(buffer_mutex && "xSemaphoreCreateMutex() failed.");
 }
 
 void driver_shutdown() {
     vTaskDelete(task_handle);
-    vSemaphoreDelete(buffer_mutex);
-    ESP_LOGI(LOG_TAG, "driver shutdown");
+    ESP_LOGI(LOG_TAG, "shutdown");
 }
 
 void driver_task() {
+    ESP_LOGI(LOG_TAG, "task running on core %d", xPortGetCoreID());
+
     int backbuf_id=0; //which buffer is the backbuffer, as in, which one is not active so we can write to it
     for(;;) {
-        assert(xSemaphoreTake(buffer_mutex, portMAX_DELAY) && "xSemaphoreTake() failed.");
-        assert(image_buffer && "image_buffer is NULL");
+        uint32_t ulBufferAddress;
+        xTaskNotifyWait( 0x00, ULONG_MAX, &ulBufferAddress, portMAX_DELAY);
+        unsigned char* buffer = (unsigned char*) ulBufferAddress;
+
+        assert(buffer && "buffer is NULL");
 
         for (int pl=0; pl<BITPLANE_CNT; pl++) {
             int mask=(1<<(8-BITPLANE_CNT+pl)); //bitmask for pixel data in input for this bitplane
@@ -101,13 +100,8 @@ void driver_task() {
                     if (fx<1 || fx>=BRIGHTNESS) v|=BIT_OE;
                     if (fx==62) v|=BIT_LAT; //latch on second-to-last bit... why not last bit? Dunno, probably a timing thing.
 
-#if FLIP_IMAGE
-                    int c1=getpixel(image_buffer, x, 32 - y);
-                    int c2=getpixel(image_buffer, x, 16 - y);
-#else
-                    int c1=getpixel(image_buffer, x, y);
-                    int c2=getpixel(image_buffer, x, y + 16);
-#endif
+                    int c1=getpixel(buffer, x, y);
+                    int c2=getpixel(buffer, x, y + 16);
 
                     if (c1 & (mask<<16)) v|=BIT_R1;
                     if (c1 & (mask<<8)) v|=BIT_G1;
@@ -121,7 +115,6 @@ void driver_task() {
                 }
             }
         }
-        assert(xSemaphoreGive(buffer_mutex) && "xSemaphoreGive() failed");
 
         //Present image and swap buffers
         i2s_parallel_flip_to_buffer(&I2S1, backbuf_id);
@@ -132,7 +125,6 @@ void driver_task() {
 }
 
 void driver_run() {
-    BaseType_t err = xTaskCreate(driver_task, 
-        "driver_task", 1000, NULL, 5, &task_handle);
-    assert(err == pdPASS && "xTaskCreate() failed.");
+    assert(xTaskCreatePinnedToCore(driver_task, 
+        "driver_task", 10000, NULL, 1, &task_handle, 0) && "xTaskCreate() failed.");
 }

@@ -16,10 +16,9 @@
 #define VAL2PWM_H
 
 #include <stdint.h>
-#include "val2pwm.h"
 
 //C/p'ed from https://ledshield.wordpress.com/2012/11/13/led-brightness-to-your-eye-gamma-correction-no/
-const uint16_t lumConvTab[]={
+static const uint16_t lumConvTab[]={
     65535,    65508,    65479,    65451,    65422,    65394,    65365,    65337,
     65308,    65280,    65251,    65223,    65195,    65166,    65138,    65109,
     65081,    65052,    65024,    64995,    64967,    64938,    64909,    64878,
@@ -54,7 +53,7 @@ const uint16_t lumConvTab[]={
     4543,    3908,    3267,    2623,    1974,    1320,    662,    0};
 
 
-inline uint8_t valToPwm(int val) {
+static inline uint8_t val2pwm(int val) {
     if (val<0) val=0;
     if (val>255) val=255;
     return (65535-lumConvTab[val])>>8;
