@@ -27,7 +27,6 @@
 #include "driver/periph_ctrl.h"
 #include "soc/io_mux_reg.h"
 #include "rom/lldesc.h"
-#include "val2pwm.h"
 #include "i2s_parallel.h"
 
 #include "driver/gpio.h"

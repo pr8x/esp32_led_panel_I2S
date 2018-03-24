@@ -74,6 +74,8 @@ void driver_task() {
 
     int backbuf_id=0; //which buffer is the backbuffer, as in, which one is not active so we can write to it
     for(;;) {
+        //TickType_t t0 = xTaskGetTickCount();
+
         uint32_t ulBufferAddress;
         xTaskNotifyWait( 0x00, ULONG_MAX, &ulBufferAddress, portMAX_DELAY);
         unsigned char* buffer = (unsigned char*) ulBufferAddress;
@@ -119,6 +121,8 @@ void driver_task() {
         //Present image and swap buffers
         i2s_parallel_flip_to_buffer(&I2S1, backbuf_id);
         backbuf_id^=1;
+
+        //ESP_LOGI(LOG_TAG, "delta: %d", xTaskGetTickCount() - t0);
 
         vTaskDelay(REFRESH_RATE / portTICK_PERIOD_MS);
     }

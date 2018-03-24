@@ -24,7 +24,6 @@
 #include "freertos/semphr.h"
 #include "freertos/queue.h"
 
-#include "val2pwm.h"
 #include "i2s_parallel.h"
 #include "common.h"
 
@@ -42,7 +41,8 @@
 
 //Change to set the global brightness of the display, range 1-63
 //Warning when set too high: Do not look into LEDs with remaining eye.
-#define BRIGHTNESS 16
+#define BRIGHTNESS 48
+
 
 //Upper half RGB
 #define BIT_R1 (1<<0)   //connected to GPIO2 here
@@ -68,10 +68,6 @@ void driver_init();
 void driver_run();
 void driver_shutdown();
 
-void driver_present(unsigned char*);
-
-//Get a pixel from the image at pix, assuming the image is a 64x32 8R8G8B image
-//Returns it as an uint32 with the lower 24 bits containing the RGB values.
-uint32_t getpixel(unsigned char *pix, int x, int y);
+void driver_set_buffer(unsigned char*);
 
 #endif

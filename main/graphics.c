@@ -1,6 +1,7 @@
 #include "graphics.h"
 #include "driver.h"
 #include "common.h"
+#include "gamma_correction.h"
 
 #include <string.h> //memset()
 
@@ -14,6 +15,7 @@ static const char* LOG_TAG = "Graphics";
 
 void graphics_init() {
     driver_init();
+    fs_init();
 
     //combined back and front buffer
     buffer  = (unsigned char*)malloc(2 * BUFFER_SIZE);
@@ -32,6 +34,7 @@ void graphics_shutdown() {
     driver_shutdown();
     free(buffer);
     vTaskDelete(task_handle);
+    fs_shutdown();
     ESP_LOGI(LOG_TAG, "shutdown");
 } 
 
@@ -41,37 +44,66 @@ void graphics_swap_buffer() {
     fb = tmp;
 } 
 
-void module_task(void* fn) {
+void sampler_load(sampler_t* sampler) {
+    ESP_LOGI(LOG_TAG, "Loading sampler %s", sampler->file);
+
+    sampler->_gif = gd_open_gif(sampler->file);
+    assert(sampler->_gif && "gd_open_gif() failed");
+
+    sampler->_buffer = malloc(sampler->_gif->width * sampler->_gif->height * 3);
+    assert(sampler->_buffer && "malloc() failed");
+}
+
+void sampler_unload(sampler_t* sampler) {
+    free(sampler->_buffer);
+    gd_close_gif(sampler->_gif);
+
+    ESP_LOGI(LOG_TAG, "Unloaded sampler %s", sampler->file);
+}
+
+void sampler_tick(sampler_t* sampler) {
+    if (gd_get_frame(sampler->_gif)) {
+        gd_render_frame(sampler->_gif, sampler->_buffer);
+    } else if (sampler->loop) {
+        gd_rewind(sampler->_gif);
+        sampler_tick(sampler);
+    }
+
+    vTaskDelay(16 / portTICK_PERIOD_MS); //animation delay
+}
+
+void module_task(module_t* module) {
     ESP_LOGI(LOG_TAG, "task running on core %d", xPortGetCoreID());
 
+    if (module->sampler)
+        sampler_load(module->sampler);
+
     for(;;) {
-        TickType_t t0 = xTaskGetTickCount();
+        if (module->sampler)
+            sampler_tick(module->sampler);
 
         for (int y = 0; y < 32; ++y) {
             for (int x = 0; x < 64; ++x) {
-                vec2 uv;
-                uv.x = 1.0f - (x / 64.0f);
-                uv.y = y / 32.0f;
-
-                vec3 out;
-                (*((module_func_t)fn))(&uv, &out);
+                vec2 uv = { 1.0f - (x / 64.0f), y / 32.0f };
+                vec4 out = { 0.0f, 0.0f, 0.0f, 1.0f };
+                (*((module_func_t)module->fn))(&uv, &out, module->sampler);
 
                 unsigned char* p = bb + ((x + y * 64) * 3);
-                p[0] = (int)(out.x * 255);
-                p[1] = (int)(out.y * 255);
-                p[2] = (int)(out.z * 255);
+                float alpha = out.w * 255;
+                p[0] = gamma8[(int)(out.x * alpha)];
+                p[1] = gamma8[(int)(out.y * alpha)];
+                p[2] = gamma8[(int)(out.z * alpha)];
             }
         }
-        //vTaskDelay(1 / portTICK_PERIOD_MS); //feed watchdog
-
         driver_set_buffer(fb);
         graphics_swap_buffer();
-
-        ESP_LOGI(LOG_TAG, "delta: %d", xTaskGetTickCount() - t0);
     }
+
+    if (module->sampler)
+        sampler_unload(module->sampler);
 }
 
-void graphics_module_start(module_func_t fn) {
+void graphics_run(module_t* module) {
     assert(xTaskCreatePinnedToCore(module_task, 
-        "module_task", 10000, (void*) fn, 2, &task_handle, 1) && "xTaskCreate() failed.");
+        "module_task", 10000, (void*) module, 2, &task_handle, 1) && "xTaskCreate() failed.");
 }
