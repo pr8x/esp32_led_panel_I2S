@@ -34,3 +34,20 @@ You can simply use jumper wires to connect them to ESP32 GPIO pins. We built a s
 | LAT   | GPIO26 |
 | OE    | GPIO25 |
 | CLK   | GPIO22 |
+
+
+# Install
+
+Follow the [official instructions](https://esp-idf.readthedocs.io/en/v2.0/linux-setup.html) to setup the ESP32 toolchain.
+
+Clone this repository and run `make flash && make monitor` to flash the firmware and monitor serial output. You might need to adjust the upload port in the toolchain settings. Run `make menuconfig` to do so.
+
+In order to display custom `.gif` files you need to upload them into the SPIFFS partition of the ESP. Install [mkspiffs](https://github.com/igrr/mkspiffs) and copy your `.gif` files into /data/.
+
+`mkspiff -c data -b 4096 -p 256 -s 1048576 spiffs.bin`
+
+Finally, upload the image using `esptool.py`. Make sure to adjust the `--port` option accordingly.
+
+`esptool --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 115200 write_flash 0x180000 spiffs.bin`
+
+
