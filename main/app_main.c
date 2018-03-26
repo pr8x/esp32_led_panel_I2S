@@ -4,8 +4,6 @@
 #include "graphics.h"
 #include <math.h>
 
-static float _k = 0.0f;
-
 void module_gif(vec2*uv, vec4* out, sampler_t* sampler) {
     sample(sampler, *uv, (vec3*) out);
 }
