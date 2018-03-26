@@ -1,6 +1,8 @@
-# esp32_led_panel_i2c
+# ESP32 LED PANEL
 The driver is mostly based on the experimental parallel i2c code provided by Espressif. https://esp32.com/viewtopic.php?t=3188. We added graphics ("shader") and network support.
 
+
+![Alt Text](demo_march_2018.gif)
 
 # Setup
 
@@ -42,12 +44,10 @@ Follow the [official instructions](https://esp-idf.readthedocs.io/en/v2.0/linux-
 
 Clone this repository and run `make flash && make monitor` to flash the firmware and monitor serial output. You might need to adjust the upload port in the toolchain settings. Run `make menuconfig` to do so.
 
-In order to display custom `.gif` files you need to upload them into the SPIFFS partition of the ESP. Install [mkspiffs](https://github.com/igrr/mkspiffs) and copy your `.gif` files into /data/.
+In order to display custom (64x32px) `.gif` files you need to upload them into the SPIFFS partition of the ESP. Install [mkspiffs](https://github.com/igrr/mkspiffs) and copy your `.gif` files into /data/.
 
 `mkspiff -c data -b 4096 -p 256 -s 1048576 spiffs.bin`
 
 Finally, upload the image using `esptool.py`. Make sure to adjust the `--port` option accordingly.
 
 `esptool --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 115200 write_flash 0x180000 spiffs.bin`
-
-
