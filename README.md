@@ -51,3 +51,5 @@ In order to display custom (64x32px) `.gif` files you need to upload them into t
 Finally, upload the image using `esptool.py`. Make sure to adjust the `--port` option accordingly.
 
 `esptool --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 115200 write_flash 0x180000 spiffs.bin`
+
+You can also run `upload_spiffs.sh`, which automates the upload process.

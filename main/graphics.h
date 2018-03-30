@@ -6,9 +6,10 @@
 
 #include "filesystem.h"
 #include "gifdec.h"
+#include "common.h"
 
 typedef struct {
-    char* file;
+    char file[20];
     bool loop;
 
     unsigned char* _buffer;
@@ -68,5 +69,6 @@ typedef struct {
 void graphics_init();
 void graphics_shutdown();
 void graphics_run(module_t*);
+void graphics_stop();
 
 #endif

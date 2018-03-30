@@ -65,7 +65,10 @@ void driver_init() {
 }
 
 void driver_shutdown() {
-    vTaskDelete(task_handle);
+    driver_set_buffer(NULL);
+
+    //TODO: actually wait for task to end
+    vTaskDelay(200 / portTICK_PERIOD_MS);
     ESP_LOGI(LOG_TAG, "shutdown");
 }
 
@@ -77,10 +80,11 @@ void driver_task() {
         //TickType_t t0 = xTaskGetTickCount();
 
         uint32_t ulBufferAddress;
-        xTaskNotifyWait( 0x00, ULONG_MAX, &ulBufferAddress, portMAX_DELAY);
+        xTaskNotifyWait( pdFALSE, ULONG_MAX, &ulBufferAddress, portMAX_DELAY);
         unsigned char* buffer = (unsigned char*) ulBufferAddress;
 
-        assert(buffer && "buffer is NULL");
+        if (buffer == NULL)
+            break;
 
         for (int pl=0; pl<BITPLANE_CNT; pl++) {
             int mask=(1<<(8-BITPLANE_CNT+pl)); //bitmask for pixel data in input for this bitplane
@@ -123,12 +127,14 @@ void driver_task() {
         backbuf_id^=1;
 
         //ESP_LOGI(LOG_TAG, "delta: %d", xTaskGetTickCount() - t0);
-
         vTaskDelay(REFRESH_RATE / portTICK_PERIOD_MS);
     }
+
+    ESP_LOGI(LOG_TAG, "task stopped");
+    vTaskDelete(NULL);
 }
 
 void driver_run() {
     assert(xTaskCreatePinnedToCore(driver_task, 
-        "driver_task", 10000, NULL, 1, &task_handle, 0) && "xTaskCreate() failed.");
+        "driver_task", 10000, NULL, 90, &task_handle, 0) && "xTaskCreate() failed.");
 }

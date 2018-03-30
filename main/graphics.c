@@ -1,6 +1,5 @@
 #include "graphics.h"
 #include "driver.h"
-#include "common.h"
 #include "gamma_correction.h"
 
 #include <string.h> //memset()
@@ -32,8 +31,8 @@ void graphics_init() {
 
 void graphics_shutdown() {
     driver_shutdown();
+    graphics_stop();
     free(buffer);
-    vTaskDelete(task_handle);
     fs_shutdown();
     ESP_LOGI(LOG_TAG, "shutdown");
 } 
@@ -79,12 +78,15 @@ void module_task(module_t* module) {
         sampler_load(module->sampler);
 
     for(;;) {
+        if (ulTaskNotifyTake(pdTRUE, 0))
+            break;
+
         if (module->sampler)
             sampler_tick(module->sampler);
 
         for (int y = 0; y < 32; ++y) {
             for (int x = 0; x < 64; ++x) {
-                vec2 uv = { 1.0f - (x / 64.0f), y / 32.0f };
+                vec2 uv = { x / 64.0f, y / 32.0f };
                 vec4 out = { 0.0f, 0.0f, 0.0f, 1.0f };
                 (*((module_func_t)module->fn))(&uv, &out, module->sampler);
 
@@ -101,9 +103,21 @@ void module_task(module_t* module) {
 
     if (module->sampler)
         sampler_unload(module->sampler);
+
+    ESP_LOGI(LOG_TAG, "task stopped");
+    vTaskDelete(NULL);
 }
 
 void graphics_run(module_t* module) {
-    assert(xTaskCreatePinnedToCore(module_task, 
-        "module_task", 10000, (void*) module, 2, &task_handle, 1) && "xTaskCreate() failed.");
+    graphics_stop();
+    xTaskCreatePinnedToCore(module_task, 
+        "module_task", 10000, (void*) module, 80, &task_handle, 1);
+}
+
+void graphics_stop() {
+    if (task_handle)
+        xTaskNotifyGive(task_handle);
+
+    //TODO: actually wait for task to end
+    vTaskDelay(200 / portTICK_PERIOD_MS);
 }

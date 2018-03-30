@@ -2,11 +2,20 @@
 #include "freertos/task.h"
 
 #include "graphics.h"
+#include "network.h"
 #include <math.h>
+#include <string.h>
+
+static module_t module; 
+static sampler_t sampler;
 
 void module_gif(vec2*uv, vec4* out, sampler_t* sampler) {
     sample(sampler, *uv, (vec3*) out);
 }
+
+// void module_solid(vec2*uv, vec4* out, sampler_t* sampler) {
+//     out->z = 1.0f;
+// }
 
 // void module_sphere(vec2*uv, vec4* out, sampler_t* sampler) {
 //     vec2 cuv = { uv->x * 2.0f - 1.0f, uv->y * 2.0f - 1.0f };
@@ -39,22 +48,29 @@ void module_gif(vec2*uv, vec4* out, sampler_t* sampler) {
 //     out->z = b;
 // }
 
+void network_request(http_context_t* ctx) {
+    const char* gf = http_request_get_arg_value(*ctx, "gif_file");
+    if (gf != NULL) {
+        ESP_LOGI("Main", "requested file: %s", gf);
+
+        strcpy(sampler.file, gf);
+        sampler.loop = true;
+
+        module.fn = module_gif;
+        module.sampler = &sampler;
+
+        graphics_run(&module);
+    }
+}
+
 void app_main() {
+
     graphics_init();
+    network_init();
+    network_set_callback(network_request);
 
-    sampler_t sampler = {
-        .file = "/spiffs/box.gif",
-        .loop = true
-    };
-
-    module_t module = {
-        .fn = module_gif,
-        .sampler = &sampler
-    };
-    graphics_run(&module);
-
-    //handle web requests, update buffer
-    vTaskDelay(1000000000 / portTICK_PERIOD_MS);
+    vTaskDelay(50000000 / portTICK_PERIOD_MS);
 
     graphics_shutdown();
+    network_shutdown();
 }
