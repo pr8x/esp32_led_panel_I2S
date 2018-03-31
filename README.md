@@ -17,7 +17,6 @@ The RGB panel has two 16 pin connector on the back. Make sure to use the one lab
 |  L  |  R  |
 |-----|-----|
 | R1  | G1  |
-
 | B1  | GND |
 | R2  | G2  |
 | B2  | GND |
