@@ -46,10 +46,10 @@ Clone this repository and run `make flash && make monitor` to flash the firmware
 
 In order to display custom (64x32px) `.gif` files you need to upload them into the SPIFFS partition of the ESP. Install [mkspiffs](https://github.com/igrr/mkspiffs) and copy your `.gif` files into /data/.
 
-`mkspiff -c data -b 4096 -p 256 -s 1048576 spiffs.bin`
+`mkspiff -c data -b 4096 -p 256 -s 2097152 spiffs.bin`
 
 Finally, upload the image using `esptool.py`. Make sure to adjust the `--port` option accordingly.
 
 `esptool --chip esp32 --port /dev/tty.SLAB_USBtoUART --baud 115200 write_flash 0x180000 spiffs.bin`
 
-You can also run `upload_spiffs.sh`, which automates the upload process.
+You can also run `upload_spiffs.sh`, which automates this upload process.

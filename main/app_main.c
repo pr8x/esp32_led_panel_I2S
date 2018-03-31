@@ -48,18 +48,26 @@ void module_gif(vec2*uv, vec4* out, sampler_t* sampler) {
 //     out->z = b;
 // }
 
-void network_request(http_context_t* ctx) {
-    const char* gf = http_request_get_arg_value(*ctx, "gif_file");
-    if (gf != NULL) {
-        ESP_LOGI("Main", "requested file: %s", gf);
+static void network_request(http_context_t* ctx) {
+    const char* arg_load = http_request_get_arg_value(*ctx, "load_gif");
+    if (arg_load != NULL) {
+        ESP_LOGI("Main", "requested file: %s", arg_load);
 
-        strcpy(sampler.file, gf);
+        strcpy(sampler.file, arg_load);
         sampler.loop = true;
 
         module.fn = module_gif;
         module.sampler = &sampler;
+        sampler.anim_speed = 16;
 
         graphics_run(&module);
+    }
+
+    const char* arg_anim_speed = http_request_get_arg_value(*ctx, "anim_speed");
+    if (arg_anim_speed != NULL) {
+        ESP_LOGI("Main", "requested animation speed: %s", arg_anim_speed);
+
+        sampler.anim_speed = atoi(arg_anim_speed);
     }
 }
 

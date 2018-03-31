@@ -4,6 +4,7 @@
 #define NETWORK_SSID "522"
 #define NETWORK_PSK ""
 
+#include "common.h"
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/event_groups.h"

@@ -1,5 +1,19 @@
-<form action="" method="get">
-  Load gif:
-  <input type="text" name="gif_file" value=""><br>
-  <input type="submit" value="Load">
+<form method="get">
+  <label for="load_gif">Filename: </label><br>
+  <input type="text" name="load_gif" onchange="previewFile(this)" value="" placeholder="/spiffs/box.gif"><br>
+
+  <label for="anim_speed">Animation speed: </label><br>
+  <input type="range" name="anim_speed" min="16" max="128" value="16"></input>
+
+
+  <p><input type="submit" value="Load"></p>
 </form>
+
+<p><img src="" id="prev"></p>
+
+<script type="text/javascript">
+function previewFile(instance) {
+  var preview = document.querySelector('#prev');
+  preview.src = instance.value;
+}
+</script>

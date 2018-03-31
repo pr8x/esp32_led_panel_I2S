@@ -68,7 +68,7 @@ void sampler_tick(sampler_t* sampler) {
         sampler_tick(sampler);
     }
 
-    vTaskDelay(16 / portTICK_PERIOD_MS); //animation delay
+    vTaskDelay(sampler->anim_speed / portTICK_PERIOD_MS); //animation delay
 }
 
 void module_task(module_t* module) {

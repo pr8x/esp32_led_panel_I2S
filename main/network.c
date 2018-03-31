@@ -1,8 +1,8 @@
 #include "network.h"
 #include <stdlib.h>
+#include <string.h>
 
 #include "esp_wifi.h"
-#include "esp_log.h"
 #include "esp_event_loop.h"
 #include "nvs_flash.h"
 
@@ -17,7 +17,7 @@ void network_set_callback(request_callback_t req_cb) {
     request_callback = req_cb;
 }
 
-static void req_handler(http_context_t http_ctx, void* arg) 
+static void req_handler_GET(http_context_t http_ctx, void* arg) 
 {
     if (request_callback)
         request_callback(&http_ctx);
@@ -100,7 +100,7 @@ void network_init() {
     http_server_options_t options = HTTP_SERVER_OPTIONS_DEFAULT();
     ESP_ERROR_CHECK(http_server_start(&options, &server));
     ESP_ERROR_CHECK(http_register_handler(
-        server, "/", HTTP_GET, HTTP_HANDLE_RESPONSE, req_handler, NULL));
+        server, "/", HTTP_GET, HTTP_HANDLE_RESPONSE, req_handler_GET, NULL));
 }
 
 

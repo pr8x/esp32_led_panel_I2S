@@ -11,6 +11,7 @@
 typedef struct {
     char file[20];
     bool loop;
+    int anim_speed;
 
     unsigned char* _buffer;
     gd_GIF* _gif;
