@@ -1,16 +1,23 @@
 # ESP32 LED PANEL
-The driver is mostly based on the experimental parallel i2c code provided by Espressif. https://esp32.com/viewtopic.php?t=3188. We added graphics ("shader") and network support.
+The driver is mostly based on the experimental parallel I2S code provided by Espressif. https://esp32.com/viewtopic.php?t=3188. We added graphics ("shader") and network support.
 
+# Features
+
+- Modules (shader)
+- Double-buffering
+- Loading/sampling .gif images from file system
+- Web interface
 
 ![Alt Text](demo_march_2018.gif)
 
-# Setup
+# Wiring
 
 The RGB panel has two 16 pin connector on the back. Make sure to use the one labeled "DATA_IN" or "JIN". Most panels use the following pinout:
 
 |  L  |  R  |
 |-----|-----|
 | R1  | G1  |
+
 | B1  | GND |
 | R2  | G2  |
 | B2  | GND |
