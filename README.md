@@ -3,6 +3,8 @@ The driver is mostly based on the experimental parallel I2S code provided by Esp
 
 # Features
 
+- Uses the I2S periphal
+- Low cpu consumption
 - Modules (shader)
 - Double-buffering
 - Loading/sampling .gif images from file system
