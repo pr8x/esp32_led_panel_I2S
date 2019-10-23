@@ -3,7 +3,7 @@
 # project subdirectory.
 #
 
-PROJECT_NAME := esp32_led_panel_i2c
-CFLAGS=-Wno-error=maybe-uninitialized
+PROJECT_NAME := esp32_led_panel_i2s
+CFLAGS=-Wno-error=maybe-uninitialized -O3 -fno-rtti -fno-exceptions
 
 include $(IDF_PATH)/make/project.mk
